@@ -12,14 +12,19 @@
 | 文件 | 大小 | 是否必需 | 说明 |
 | --- | --- | --- | --- |
 | `yangyang_v3_48k.pth` | 约 55 MB | ✅ 必需 | 模型本体（RVC v2 架构，48 kHz，HiFi-GAN 声码器，ContentVec 特征） |
-| `yangyang_v3_48k.index` | 约 378 MB | ⬜ 可选 | faiss 检索索引，用来把音色再拉近一点；没有它就把 `index_rate` 设成 0 |
+| `yangyang_v3_48k.index` | 约 44 MB | ⬜ 可选 | faiss 检索索引，用来把音色再拉近一点；没有它就把 `index_rate` 设成 0 |
 | `yangyang_v2_48k.pth` / `.index` | 55 MB / 69 MB | ⬜ 可选 | 早期版本（7.7 分钟素材、250 epoch），音色更"干净"但更像播音腔，对比用 |
 
 下载方式：**仓库右侧 Releases → `v1.0.0` → Assets**，点开单下。
 
-- 模型文件**不进 git 仓库**（`.index` 有 378 MB，超过 GitHub 单文件 100 MB 上限）
+- 模型文件**不进 git 仓库**（大二进制不适合放版本库），统一挂 Release 附件
 - Release 附件单个上限 2 GB，不占 Git LFS 额度，也不需要装 `git lfs`
 - 仓库本身只有几十 KB，`git clone` 不会被拖几百 MB
+
+> **关于索引的版本**：完整索引是 125,415 个 768 维向量（377 MB）。发布的是**压缩版**——
+> 随机抽样 60,000 个向量 + 8-bit 标量量化（SQ8），44 MB。
+> 实测 `k=8` 检索的近邻质量几乎不变（自检 top-1 距离 0.005），`index_rate=0.75` 下的听感差异可以忽略。
+> 需要完整索引可以自己用训练特征重建，或用 `shrink_index.py` 的同款方法放大抽样比例。
 
 ---
 
