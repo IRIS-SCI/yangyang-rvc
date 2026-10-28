@@ -1,0 +1,23 @@
+# 模型权重不进仓库 —— 放在 GitHub Releases 里当附件
+# （Release 单个附件上限 2 GB，不占 LFS 额度，别人 clone 也不会被拖 557 MB）
+models/*.pth
+models/*.index
+
+# 如果你以后改主意，想用 Git LFS 把模型也纳入仓库：
+#   1) 把上面两行注释掉
+#   2) 在仓库根目录执行：git lfs install && git lfs track "models/*.pth" "models/*.index"
+#   3) git add models/
+
+# 本地测试产物
+*.wav.tmp
+out.wav
+out/*
+!out/.gitkeep
+
+# 系统/编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+__pycache__/
+*.pyc
