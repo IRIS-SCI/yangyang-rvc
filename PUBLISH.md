@@ -1,15 +1,14 @@
-# 发布到 GitHub 的三种方式
+# 发布到 GitHub
 
-> 结论先说：**`.pth`（55 MB）可以直接提交；`.index`（378 MB）不行**——GitHub 单个文件硬上限 100 MB，
-> 超了会被拒绝推送。所以 `.index` 只能走 Release 附件或 Git LFS。
+> **本仓库采用的方案：仓库只放文档和脚本，四个模型文件挂在 Release 附件。**
+> 原因：`.index` 单文件 378 MB，超过 GitHub 普通文件 100 MB 的硬上限；而 Release 附件上限 2 GB，
+> 不占用 Git LFS 免费额度，别人 `git clone` 也不会被拖 557 MB。
 
 ---
 
-## 方案 A（推荐）：仓库只放说明，模型挂 Release
+## 步骤 1：推仓库（只有几十 KB）
 
-仓库体积小、克隆快，下载者点一次就行。
-
-1. 在 GitHub 网页新建一个空仓库（不要勾选 README / .gitignore）
+1. 在 GitHub 网页新建一个空仓库（不要勾 README / .gitignore / license）
 2. 本地执行：
 
 ```bash
@@ -19,63 +18,77 @@ git branch -M main
 git push -u origin main
 ```
 
-3. 网页进仓库 → 右侧 **Releases** → *Draft a new release*
-   - Tag：`v1.0.0`
-   - 标题：`秧秧 RVC v3 48k`
-   - 说明：粘一段 README 的「文件清单」
-   - 附件（拖动上传）：
-     - `models/yangyang_v3_48k.pth`（55 MB）
-     - `models/yangyang_v3_48k.index`（378 MB）
-     - 可选：`models/yangyang_v2_48k.pth` + `.index`
-   - 发布
+## 步骤 2：传模型（Release 附件）
 
-> Release 单个附件上限 2 GB，378 MB 完全没问题。
+网页进仓库 → 右侧 **Releases** → *Draft a new release*
+
+- **Tag**：`v1.0.0`（新建 tag）
+- **Title**：`秧秧 RVC v3 48k`
+- **描述**：可以直接粘 README 第一节的「文件清单」表格
+- **附件**（拖进 "Attach binaries" 区域）：
+  - `models/yangyang_v3_48k.pth`（54.9 MB）
+  - `models/yangyang_v3_48k.index`（377.8 MB）
+  - `models/yangyang_v2_48k.pth`（54.9 MB，可选）
+  - `models/yangyang_v2_48k.index`（69.0 MB，可选）
+- 点 **Publish release**
+
+传 378 MB 那个可能要几分钟，网页会显示进度条，别中途关页面。
+
+> 装过 `gh` CLI 的话可以一条命令搞定：
+> ```bash
+> gh release create v1.0.0 models/yangyang_v3_48k.pth models/yangyang_v3_48k.index \
+>   --title "秧秧 RVC v3 48k" --notes "见 README 的文件清单"
+> ```
+
+## 步骤 3：检查
+
+- 仓库首页右侧出现 **Releases → v1.0.0**，点进去能看到 Assets 列表
+- 仓库文件列表里**没有** `.pth` / `.index`——这是正常的，文件在 Releases 里
+- README 里「下载方式」那段引导能看明白
 
 ---
 
-## 方案 B：用 Git LFS 把模型也纳入仓库
+## 备选：改用 Git LFS（模型随仓库一起）
 
-适合你想 `git clone` 一次就拿到模型的情况。**注意免费额度**：LFS 存储 1 GB、流量 1 GB/月，
-一次完整克隆就吃掉 430 MB 流量。
+如果你确实希望 `git clone` 一次就带上模型：
 
 ```bash
 cd E:/rvc-yangyang/github/yangyang-rvc
 git lfs install
+# 把 .gitignore 里 models/*.pth 和 models/*.index 两行删掉
 git lfs track "models/*.pth" "models/*.index"
-git add .gitattributes
-git add models/yangyang_v3_48k.pth models/yangyang_v3_48k.index
-git commit -m "chore: 用 LFS 加入模型权重"
-git remote add origin https://github.com/<你的用户名>/yangyang-rvc.git
-git push -u origin main
+git add .gitattributes models/
+git commit -m "chore: 用 LFS 纳入模型权重"
+git push
 ```
 
-`.gitignore` 里默认忽略了 `models/*.pth` 和 `models/*.index`，方案 B 需要先把这两行删掉，
-或者用 `git add -f` 强加。`.gitattributes` 里的 LFS 规则已经写好了。
+**代价**：免费账号 LFS 只有 1 GB 存储 + 1 GB/月流量。这套 557 MB，等于一个月只够 1-2 个人完整 clone；
+超了 LFS 下载会被拒（仓库本身仍可访问）。
 
 ---
 
-## 方案 C：只传 `.pth`，不传 `.index`
+## 备选：只把 `.pth` 放进仓库
 
-`.index` 是**可选**的：没有它把 `index_rate` 设成 `0` 也能用，只是音色贴合度略降（自测 0.71 → 0.68 左右）。
+`.pth` 只有 55 MB，普通 git 允许（上限 100 MB），`.index` 仍挂 Release：
 
 ```bash
-# 删掉 .gitignore 里 models/*.pth 那一行（保留 *.index）
+# .gitignore 里只保留 models/*.index，删掉 models/*.pth 那行
 git add models/yangyang_v3_48k.pth
-git commit -m "feat: 加入 v3 48k 模型权重"
+git commit -m "feat: 加入 v3 模型本体（index 见 Release）"
 ```
-
-55 MB 在普通 git 里完全合法，缺点是之后每次克隆都要拉这 55 MB 的历史。
 
 ---
 
 ## 常见问题
 
 **Q: 推送时报 `remote: error: GH001: Large files detected`？**
-`.index` 被加进提交了。执行 `git rm --cached models/yangyang_v3_48k.index`，确认 `.gitignore` 生效后重新提交，然后
-`git push --force`（如果上一次推送被拒，本地还没推上去，正常 push 即可）。
+有 `.index` 被加进提交了。`git rm --cached models/*.index`，确认 `.gitignore` 生效后重新提交。
 
-**Q: 历史上已经提交过大文件怎么办？**
-用 `git filter-repo` 或 BFG 清理，或者最省事：删掉本地 `.git` 重新 `git init` + 提交（本仓库只有一次提交，重建成本几乎为零）。
+**Q: 之前误提交过大文件，怎么清？**
+本仓库只有一次提交，最省事的做法是删掉 `.git` 重新 `git init`：
+```bash
+rm -rf .git && git init && git add -A && git commit -m "init"
+```
 
-**Q: 想让别人不用翻墙下载？**
-Release 附件走的是 GitHub 的 CDN，国内偶尔慢；可以同时传到蓝奏云/夸克网盘，README 里补一个备用链接。
+**Q: Release 附件国内下载慢？**
+可以同时传到蓝奏云/夸克网盘，在 README 里补一行备用链接。
